@@ -64,7 +64,7 @@ export default function Home() {
         {/* ▼ ロゴ（余白を削って密着） */}
         <div style={{ marginBottom: "0px" }}>
           <img
-            src="/e-nexus-logo.PNG"
+            src="/e-nexus-logo.png"
             alt="E-NEXUS"
             className="logo-img"
             style={{
