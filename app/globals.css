@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* カスタムメニュー（あれば） */
+.menu-btn {
+  @apply block w-full text-center py-4 text-lg font-semibold rounded-lg bg-blue-500 text-white hover:bg-blue-600;
+}

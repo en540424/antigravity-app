@@ -1,0 +1,32 @@
+.homeContainer {
+  text-align: center;
+  padding: 80px 20px;
+  background-color: #f8f8f8;
+  min-height: 100vh;
+}
+
+/* ロゴの位置調整 */
+.logoWrapper {
+  margin-bottom: 20px;
+}
+
+/* ロゴ（綺麗に見える最大サイズ） */
+.logo {
+  width: min(600px, 80vw);
+  height: auto;
+}
+
+/* タイトル */
+.title {
+  font-size: 34px;
+  font-weight: 800;
+  margin: 10px 0 5px;
+}
+
+/* サブタイトル */
+.subtitle {
+  font-size: 20px;
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 50px;
+}
