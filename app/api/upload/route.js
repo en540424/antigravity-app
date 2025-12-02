@@ -1,37 +1,55 @@
-import { v4 as uuidv4 } from "uuid";
-import sharp from "sharp";
-import { writeFile } from "fs/promises";
-import path from "path";
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req) {
-  const form = await req.formData();
-  const file = form.get("file");
-  const sku = form.get("sku") || "IMG"; // SKU入力がなかった場合のデフォルト
+  try {
+    const formData = await req.formData();
+    const file = formData.get("file");
+    const sku = formData.get("sku");
 
-  if (!file) {
-    return new Response(JSON.stringify({ error: "No file" }), { status: 400 });
+    if (!file || !sku) {
+      return NextResponse.json({ error: "file or sku missing" }, { status: 400 });
+    }
+
+    // Supabase client
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY
+    );
+
+    // 画像バッファに変換
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // ファイル名（例：SKU20250000_xxxxxx.jpg）
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${sku}_${Date.now()}.${fileExt}`;
+
+    // bucket にアップロード
+    const { data, error } = await supabase.storage
+      .from("product-images")
+      .upload(fileName, buffer, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (error) {
+      console.error("Upload error:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // 公開URLの取得
+    const { data: publicData } = supabase.storage
+      .from("product-images")
+      .getPublicUrl(fileName);
+
+    return NextResponse.json({
+      message: "success",
+      filename: fileName,
+      url: publicData.publicUrl,
+    });
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
-
-  // ArrayBuffer → Buffer
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-
-  // ① 自動リサイズ（長辺1600px）
-  const resized = await sharp(buffer)
-    .resize(1600, 1600, { fit: "inside" })
-    .jpeg({ quality: 85 })
-    .toBuffer();
-
-  // ② 自動リネーム（SKU_ランダム値.jpg）
-  const newFileName = `${sku}_${uuidv4().slice(0, 8)}.jpg`;
-
-  // ③ public/uploads に保存
-  const uploadDir = path.join(process.cwd(), "public/uploads");
-  await writeFile(path.join(uploadDir, newFileName), resized);
-
-  return Response.json({
-    message: "success",
-    fileName: newFileName,
-    url: `/uploads/${newFileName}`
-  });
 }
