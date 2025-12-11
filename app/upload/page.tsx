@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type SkuItem = {
   id: string;
@@ -29,6 +30,14 @@ export default function UploadPage() {
 
   return (
     <div className="p-6 text-sm">
+      <div className="mb-4">
+        <Link
+          href="/"
+          className="inline-flex items-center px-3 py-2 bg-slate-800 text-white rounded border border-slate-700 hover:bg-slate-700"
+        >
+          ⬅️ ホームに戻る
+        </Link>
+      </div>
       <h1 className="text-2xl font-bold mb-4">商品画像アップロード</h1>
 
       {/* SKU選択 */}

@@ -7,16 +7,17 @@ export const supabase = createServerClient(
   {
     cookies: {
       get(name: string) {
-        return cookies().get(name)?.value;
+        // Next.js 16 types sometimes mark cookies() as Promise in TS; cast to any to avoid build error
+        return (cookies() as any).get(name)?.value;
       },
       set(name: string, value: string, options: any) {
         try {
-          cookies().set(name, value, options);
+          (cookies() as any).set(name, value, options);
         } catch (e) {}
       },
       remove(name: string, options: any) {
         try {
-          cookies().set(name, "", { ...options, expires: new Date(0) });
+          (cookies() as any).set(name, "", { ...options, expires: new Date(0) });
         } catch (e) {}
       },
     },

@@ -394,6 +394,14 @@ export default function CustomizePage() {
     <div className="min-h-screen bg-slate-900 text-white flex flex-col">
       <div className="flex-shrink-0 bg-slate-900 py-3 px-4 border-b border-slate-700">
         <div className="max-w-6xl mx-auto">
+          <div className="mb-2 flex justify-between items-center">
+            <Link
+              href="/"
+              className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded hover:bg-slate-700 text-sm font-semibold"
+            >
+              ⬅️ ホームに戻る
+            </Link>
+          </div>
           {/* ヘッダー */}
           <div className="mb-3">
             <h1 className="text-lg font-bold">表示スタイル</h1>

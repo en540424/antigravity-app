@@ -175,6 +175,12 @@ export default function MobileDetail() {
   return (
     <div className="text-white pb-28 p-4 max-w-lg mx-auto">
       <button
+        onClick={() => router.push("/")}
+        className="mb-3 px-4 py-2 bg-slate-800 rounded-lg border border-slate-700"
+      >
+        ⬅️ ホームに戻る
+      </button>
+      <button
         onClick={() => router.push("/sku/mobile-list")}
         className="mb-4 px-4 py-2 bg-blue-600 rounded-lg"
       >

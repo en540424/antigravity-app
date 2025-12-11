@@ -94,6 +94,12 @@ export default function SkuDetailPage() {
             </div>
             <div className="flex gap-3">
               <Link
+                href="/"
+                className="px-4 py-2 bg-slate-700 rounded hover:bg-slate-600 font-semibold"
+              >
+                ⬅️ ホームに戻る
+              </Link>
+              <Link
                 href={`/sku/${id}/edit`}
                 className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 font-semibold"
               >

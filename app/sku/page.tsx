@@ -108,12 +108,20 @@ export default function SkuManagerPage() {
               <h1 className="text-3xl font-bold">📋 SKU管理</h1>
               <p className="text-slate-400 text-sm mt-1">すべてのSKUを一覧表示・管理</p>
             </div>
-            <Link
-              href="/sku/new"
-              className="px-4 py-2 bg-green-600 rounded hover:bg-green-700 font-semibold"
-            >
-              ➕ 新規SKU作成
-            </Link>
+            <div className="flex gap-3">
+              <Link
+                href="/"
+                className="px-4 py-2 bg-slate-700 rounded hover:bg-slate-600 font-semibold"
+              >
+                ⬅️ ホームに戻る
+              </Link>
+              <Link
+                href="/sku/new"
+                className="px-4 py-2 bg-green-600 rounded hover:bg-green-700 font-semibold"
+              >
+                ➕ 新規SKU作成
+              </Link>
+            </div>
           </div>
 
           {/* 検索・フィルター */}

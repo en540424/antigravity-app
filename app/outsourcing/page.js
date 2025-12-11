@@ -36,6 +36,21 @@ export default function OutsourcingPage() {
           "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
       }}
     >
+      <div style={{ marginBottom: "16px" }}>
+        <a
+          href="/"
+          style={{
+            display: "inline-block",
+            padding: "8px 12px",
+            background: "#0f172a",
+            color: "white",
+            borderRadius: "8px",
+            textDecoration: "none",
+          }}
+        >
+          ⬅️ ホームに戻る
+        </a>
+      </div>
       <h1
         style={{
           fontSize: "28px",

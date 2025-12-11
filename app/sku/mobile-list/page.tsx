@@ -22,6 +22,14 @@ export default function MobileUI() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-white p-4">
+      <div className="mb-4">
+        <Link
+          href="/"
+          className="inline-flex items-center px-3 py-2 bg-slate-800 border border-slate-700 rounded hover:bg-slate-700"
+        >
+          ⬅️ ホームに戻る
+        </Link>
+      </div>
       <h1 className="text-2xl font-bold mb-4 text-center">
         📱 外注用SKU管理（スマホ特化）
       </h1>

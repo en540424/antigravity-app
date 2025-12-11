@@ -292,6 +292,12 @@ export default function SKUManagerPage() {
 
       {/* ボタン行 */}
       <div className="flex gap-3 mb-4">
+        <Link
+          href="/"
+          className="px-4 py-2 bg-slate-800 rounded hover:bg-slate-700 border border-slate-700"
+        >
+          ⬅️ ホーム
+        </Link>
         <button
           className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
           onClick={fetchList}

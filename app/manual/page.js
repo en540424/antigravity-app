@@ -12,6 +12,21 @@ export default function ManualPage() {
         lineHeight: "1.7",
       }}
     >
+      <div style={{ maxWidth: "960px", margin: "0 auto", marginBottom: "16px" }}>
+        <a
+          href="/"
+          style={{
+            display: "inline-block",
+            padding: "8px 12px",
+            background: "#0f172a",
+            color: "white",
+            borderRadius: "8px",
+            textDecoration: "none",
+          }}
+        >
+          ⬅️ ホームに戻る
+        </a>
+      </div>
       {/* 中央の白カード */}
       <div
         style={{
