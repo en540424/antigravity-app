@@ -1,44 +1,62 @@
-# Decision Log (E-NEXUS eBay)
 
-## 2026-01-31: Introduce docs/ as AI-first design memory for eBay development
+---
+
+# C) 共通の変更管理ルール（decision-log 追記用：E-NEXUS版）
+
+> 目的：E-STEP / E-NEXUS どっちでも **同じ「変更の進め方」**で回し、AIのブレと混線を止める。
+
+`docs/decision-log.md` の末尾に **このエントリを追記**してOK。
+
+```md
+## 2026-01-31: Cross-project change management rules (E-STEP + E-NEXUS)
 
 ### Context
-- eBay integration involves complex external APIs, rate limits, and partial failures.
-- AI-generated suggestions tended to:
-  - Assume undocumented API behavior
-  - Introduce inconsistent patterns across features
-  - Drift between E-STEP-TOOL and eBay projects
-- Chat-based instructions alone could not preserve long-term decision context.
+- Multiple AI assistants (Claude, OpenAI, Copilot) are used across multiple repositories.
+- Without a shared change management contract, outputs drift:
+  - inconsistent conventions
+  - unexpected refactors
+  - accidental overwrites
+  - unclear review boundaries
 
 ### Decision
-- Introduce `docs/` as the permanent source of truth for AI-assisted development.
-- Establish the following documents:
-  - `docs/ai-principles.md` — AI behavior and decision discipline
-  - `docs/design-rules.md` — eBay-specific engineering rules
-  - `docs/decision-log.md` — rationale and historical decisions
+Adopt a shared change management process across projects:
 
-### Options Considered
-1) Rely on chat history and ad-hoc instructions
-- Pros: Fast to start
-- Cons: High drift, repeated explanations, inconsistent outputs
+1) **Small commits, single purpose**
+- 1 commit = 1 intent (reviewable unit)
 
-2) Centralize everything in README.md
-- Pros: Fewer files
-- Cons: Mixed concerns, unclear decision history
+2) **No mixing docs and app changes**
+- docs-only commits are separate from application code commits
+
+3) **Diff-first workflow**
+- Always propose diff first
+- Human confirms before applying changes
+- No silent multi-file edits
+
+4) **Rule/exception logging**
+- New conventions or exceptions must be recorded in decision-log
+  BEFORE implementation
+
+5) **One project per VS Code window**
+- Avoid opening multiple repos in the same workspace to prevent instruction mixing
+
+### Options considered
+1) Ad-hoc changes without formal process
+- Pros: Fast
+- Cons: Drift, hard rollback, repeated rework
+
+2) Single global ruleset only
+- Pros: Simple
+- Cons: Project-specific constraints are lost
 
 ### Rationale
-- Separating principles, rules, and decisions allows AI to:
-  - Respect past decisions
-  - Avoid re-litigating settled questions
-  - Produce stable, predictable outputs across time
+- Small, intentional diffs reduce risk and increase review speed.
+- Separating docs and code commits preserves traceability and rollback safety.
+- Logging decisions prevents repeated debates and AI drift.
 
 ### Consequences
-- Any new rule, convention, or exception must be logged here.
-- Unlogged decisions are treated as non-binding.
-- AI suggestions that conflict with docs must be rejected.
-
-### Git Operation
-- Changes to `docs/` must be committed separately from application code.
+- Any change violating these rules must be treated as invalid and redone.
+- If a change requires an exception, record it first in decision-log.
+- Cross-project consistency improves over time without forcing identical architectures.
 
 ### Status
 - Accepted
