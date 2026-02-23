@@ -6,6 +6,13 @@ import { getServerSupabase } from "@/app/utils/supabase/server";
  * AI に商品情報を抽出させるエンドポイント
  */
 export async function POST(req: NextRequest) {
+  // 🔒 Internal secret check
+  const secret = process.env.INTERNAL_API_SECRET;
+  if (!secret) return new Response("Server misconfigured", { status: 500 });
+
+  const incoming = req.headers.get("x-internal-secret");
+  if (incoming !== secret) return new Response("Unauthorized", { status: 401 });
+
   try {
     const supabase = await getServerSupabase();
     const { sku } = await req.json();

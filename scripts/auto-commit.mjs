@@ -35,6 +35,14 @@ async function run() {
     // 2) Also capture branch (helps message)
     const branch = sh("git rev-parse --abbrev-ref HEAD");
 
+    // ✅ prevent direct commit/push to main/master (recommended)
+    if (branch === "main" || branch === "master") {
+      console.error(`❌ Refusing to commit/push directly on ${branch}.`);
+      console.error(`   Create a feature branch first, e.g.:`);
+      console.error(`   git switch -c feature/<topic>`);
+      process.exit(1);
+    }
+
     // 3) Generate commit message
     console.log("🤖 Generating commit message with AI...");
 
