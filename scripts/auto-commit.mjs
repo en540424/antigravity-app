@@ -75,7 +75,17 @@ async function run() {
 
     // 5) Push
     console.log("🚀 Pushing...");
-    shInherit("git push");
+    try {
+      shInherit("git push");
+    } catch (e) {
+      // upstream未設定の場合は自動で -u を付けてpush
+      const msg = String(e?.message || "");
+      if (!msg.includes("has no upstream branch")) throw e;
+
+      const branch = sh("git rev-parse --abbrev-ref HEAD");
+      console.log(`ℹ️ No upstream. Setting upstream to origin/${branch}...`);
+      shInherit(`git push -u origin ${branch}`);
+    }
 
     console.log("✅ Done.");
   } catch (err) {
