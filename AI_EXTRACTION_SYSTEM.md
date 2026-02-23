@@ -40,7 +40,12 @@
 - model (TEXT)                          # 型番
 - color (TEXT)                          # 色
 - condition (TEXT)                      # 商品状態
-- ebay_category (TEXT)                  # eBayカテゴリ番号
+- const categoryId = typeof sku.ebay_category_id === "number" ? sku.ebay_category_id : null;
+
+if (!categoryId || categoryId <= 0) {
+  missing.push("カテゴリ未設定");
+}
+ (TEXT)                  # eBayカテゴリ番号
 - title_optimized (TEXT)                # 最適化タイトル
 - description (TEXT)                    # 商品説明
 - item_specifics (JSONB)                # Item Specifics
@@ -149,10 +154,15 @@ AI が抽出した情報:
     "model": "ILCE-6000",
     "color": "ブラック",
     "condition": "美品",
-    "ebayCategory": "171485",
-    "titleOptimized": "SONY ILCE-6000 ブラック 美品",
+    "const categoryId = typeof sku.ebay_category_id === "number" ? sku.ebay_category_id : null;
+
+if (!categoryId || categoryId <= 0) {
+  missing.push("カテゴリ未設定");
+}
+": "171485",
+    "title_optimized": "SONY ILCE-6000 ブラック 美品",
     "description": "ソニーのミラーレスカメラ ILCE-6000...",
-    "itemSpecifics": {
+    "item_specifics": {
       "Brand": "SONY",
       "Model": "ILCE-6000",
       "Color": "Black",
@@ -197,10 +207,15 @@ AI が抽出した情報:
   "model": "ILCE-6000",
   "color": "ブラック",
   "condition": "美品",
-  "ebayCategory": "171485",
-  "titleOptimized": "タイトル",
+  "const categoryId = typeof sku.ebay_category_id === "number" ? sku.ebay_category_id : null;
+
+if (!categoryId || categoryId <= 0) {
+  missing.push("カテゴリ未設定");
+}
+": "171485",
+  "title_optimized": "タイトル",
   "description": "説明文",
-  "itemSpecifics": { ... }
+  "item_specifics": { ... }
 }
 ```
 

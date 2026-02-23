@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
-import { supabase } from "@/app/lib/supabase";
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSupabase } from "@/app/utils/supabase/server";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const supabase = await getServerSupabase();
   const { id, sku, withImages } = await req.json();
 
   if (!id || !sku) {

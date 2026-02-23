@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/app/lib/supabase";
+import { getServerSupabase } from "@/app/utils/supabase/server";
 
 /**
  * 削除されたSKUを復帰（修復）するAPI
  * 例：20251211-0001, 0002を削除後、0001を復帰して自動生成すると0001が再利用される
  */
 export async function POST(req: Request) {
+  const supabase = await getServerSupabase();
   const { sku, title = "", status = "none" } = await req.json();
 
   if (!sku) {

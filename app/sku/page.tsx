@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { checkListingEligibility, EbayListingData } from "@/app/lib/ebayListingData";
 
 type SkuStatus = "shooting" | "editing" | "listing" | "done" | "none";
 
@@ -11,6 +12,19 @@ type SkuItem = {
   title: string | null;
   status: SkuStatus | null;
   created_at: string;
+  // 出品用情報（API/DB拡張時はここに追加）
+  ebay_title?: string | null;
+  ebay_description?: string | null;
+  ebay_condition?: string | null;
+  price_usd?: number | null;
+  image_urls?: string[];
+  title_en?: string | null;
+  description_en?: string | null;
+  condition_en?: string | null;
+  imageUrls?: string[];
+  shippingTemplate?: string | null;
+  returnPolicy?: string | null;
+  shortLabel?: { value: string; label: string } | null;
 };
 
 const STATUS_LABEL: Record<SkuStatus, string> = {
@@ -98,6 +112,23 @@ export default function SkuManagerPage() {
     );
   }
 
+  // 出品可否判定用のマッピング関数
+  function toEbayListingData(item: SkuItem): Partial<EbayListingData> {
+    return {
+      sku: item.sku,
+      title: item.ebay_title || item.title || "",
+      description: item.ebay_description || "",
+      condition: item.ebay_condition || "",
+      priceUSD: item.price_usd || 0,
+      imageUrls: item.image_urls || [],
+      quantity: 1,
+      shippingPolicy: "default",
+      returnPolicy: "default",
+      handlingTime: 3,
+      location: "Japan",
+    };
+  }
+
   return (
     <div className="min-h-screen bg-slate-900 text-white">
       {/* ヘッダー */}
@@ -171,34 +202,45 @@ export default function SkuManagerPage() {
       </div>
 
       {/* リスト */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-2xl mx-auto px-6 py-8">
         {filteredList.length === 0 ? (
           <div className="text-center py-12 text-slate-400">
             <p className="text-xl mb-2">SKUが見つかりません</p>
             <p className="text-sm">新しいSKUを作成するか、検索条件を変更してください</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {filteredList.map((item) => (
-              <div
-                key={item.id}
-                className="bg-slate-800 border border-slate-700 rounded-lg p-4 hover:bg-slate-750 transition flex items-center justify-between"
-              >
-                <Link
-                  href={`/sku/${item.id}`}
-                  className="flex-1 cursor-pointer group"
+          <div className="flex flex-col gap-4">
+            {filteredList.map((item) => {
+              const eligibility = checkListingEligibility(toEbayListingData(item));
+              return (
+                <div
+                  key={item.id}
+                  className="bg-slate-800 border border-slate-700 rounded-lg p-4 hover:bg-slate-750 transition w-full"
                 >
-                  <div className="flex items-center gap-4">
+                  <Link
+                    href={`/sku/${item.id}`}
+                    className="block cursor-pointer group w-full"
+                  >
                     {/* ステータスバッジ */}
-                    <div
-                      className={`w-3 h-3 rounded-full ${
-                        STATUS_COLOR[item.status ?? "none"]
-                      }`}
-                    />
-
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-3 h-3 rounded-full ${STATUS_COLOR[item.status ?? "none"]}`} />
+                      <span className="px-3 py-1 rounded text-sm bg-slate-700 text-slate-200">
+                        {STATUS_LABEL[item.status ?? "none"]}
+                      </span>
+                      {eligibility.eligible ? (
+                        <span className="px-2 py-0.5 rounded text-xs bg-green-600 text-white ml-1">出品可</span>
+                      ) : (
+                        <span
+                          className="px-2 py-0.5 rounded text-xs bg-red-600 text-white ml-1 cursor-help"
+                          title={eligibility.reasons.join("\n")}
+                        >
+                          出品不可
+                        </span>
+                      )}
+                    </div>
                     {/* SKU情報 */}
-                    <div className="flex-1">
-                      <div className="text-white font-semibold group-hover:text-blue-400">
+                    <div className="w-full">
+                      <div className="text-white font-semibold group-hover:text-blue-400 text-lg">
                         {item.sku}
                       </div>
                       <div className="text-sm text-slate-400">
@@ -208,36 +250,37 @@ export default function SkuManagerPage() {
                         作成: {new Date(item.created_at).toLocaleDateString("ja-JP")}
                       </div>
                     </div>
-
-                    {/* ステータス */}
-                    <div className="text-right">
-                      <span className="px-3 py-1 rounded text-sm bg-slate-700 text-slate-200">
-                        {STATUS_LABEL[item.status ?? "none"]}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* アクションボタン */}
-                <div className="flex gap-2 ml-4">
-                  <Link
-                    href={`/sku/${item.id}/edit`}
-                    className="px-3 py-1 bg-blue-600 rounded text-sm hover:bg-blue-700 font-semibold"
-                  >
-                    編集
                   </Link>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    disabled={deleting === item.id}
-                    className="px-3 py-1 bg-red-600 rounded text-sm hover:bg-red-700 font-semibold disabled:opacity-50"
-                  >
-                    {deleting === item.id ? "削除中..." : "削除"}
-                  </button>
+                  {/* アクションボタン */}
+                  <div className="flex flex-col gap-2 mt-4 w-full">
+                    <Link
+                      href={`/sku/${item.id}/edit`}
+                      className="px-3 py-1 bg-blue-600 rounded text-sm hover:bg-blue-700 font-semibold w-full text-center"
+                    >
+                      編集
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      disabled={deleting === item.id}
+                      className="px-3 py-1 bg-red-600 rounded text-sm hover:bg-red-700 font-semibold disabled:opacity-50 w-full"
+                    >
+                      {deleting === item.id ? "削除中..." : "削除"}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
+
+        <div className="mt-6 pt-6 border-t text-center">
+          <a
+            href="/"
+            className="inline-block px-6 py-2 bg-slate-600 text-white rounded hover:bg-slate-700 font-medium"
+          >
+            ← ホームに戻る
+          </a>
+        </div>
       </div>
     </div>
   );

@@ -1,12 +1,13 @@
-import { NextResponse } from "next/server";
-import { supabase } from "@/app/lib/supabase";
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSupabase } from "@/app/utils/supabase/server";
 
 /**
  * SKU の RAW フォルダから最初の画像を取得して、
  * AI に商品情報を抽出させるエンドポイント
  */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const supabase = await getServerSupabase();
     const { sku } = await req.json();
 
     if (!sku) {

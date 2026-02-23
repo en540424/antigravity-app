@@ -1,254 +1,153 @@
 "use client";
-
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
+import Link from "next/link";
+import { judgeProfit } from "@/app/lib/profitRule";
 
-type SkuStatus = "shooting" | "editing" | "listing" | "done" | "none";
-
-type SkuDetail = {
-  id: string;
-  sku: string;
-  title: string | null;
-  status: SkuStatus | null;
-  created_at: string;
-  genre?: string | null;
-  brand?: string | null;
-  model?: string | null;
-  color?: string | null;
-  condition?: string | null;
-  ebay_category?: string | null;
-  title_optimized?: string | null;
-  description?: string | null;
-  item_specifics?: Record<string, string> | null;
-  ai_extracted_at?: string | null;
-};
-
-const STATUS_LABEL: Record<SkuStatus, string> = {
-  shooting: "📷 撮影待ち",
-  editing: "✂️ 編集待ち",
-  listing: "🛒 出品待ち",
-  done: "🏁 完了",
-  none: "未設定",
-};
-
-const STATUS_COLOR: Record<SkuStatus, string> = {
-  shooting: "bg-yellow-500",
-  editing: "bg-blue-500",
-  listing: "bg-purple-500",
-  done: "bg-green-500",
-  none: "bg-gray-500",
-};
+// 次の作業判定（簡易）
+function getNextAction(sku: any) {
+  const requiredImages = 6;
+  if (!sku.imageCount || sku.imageCount < requiredImages) return "image";
+  if (!sku.title || sku.title === "(未入力)" || sku.is_temp_title) return "edit";
+  if (!sku.jp_condition && !sku.condition) return "edit";
+  if (sku.cost == null || sku.cost === "" || sku.expected_price == null || sku.expected_price === "") return "edit";
+  if (!sku.ai_title_status || sku.ai_title_status === "未生成") return "edit";
+  if (!sku.ai_desc_status || sku.ai_desc_status === "未生成") return "edit";
+  if (!sku.listing_status || sku.listing_status === "未判定" || sku.listing_status === "-") return "listing";
+  return "ok";
+}
 
 export default function SkuDetailPage() {
   const params = useParams();
-  const id = params.id as string;
-  const [sku, setSku] = useState<SkuDetail | null>(null);
+  const id = params?.id as string;
+  const [sku, setSku] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchDetail = async () => {
-      try {
-        const res = await fetch(`/api/sku/${id}`);
+    if (!id) return;
+    setLoading(true);
+    fetch(`/api/sku-detail?id=${encodeURIComponent(id)}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("not found");
         const data = await res.json();
+        if (!data || !data.id) throw new Error("not found");
         setSku(data);
-      } catch (error) {
-        console.error("Failed to fetch SKU:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDetail();
+        setError("");
+      })
+      .catch(() => setError("データが見つかりませんでした"))
+      .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-        <div className="text-2xl">読み込み中...</div>
-      </div>
-    );
-  }
+  if (loading) return <div style={{ padding: 32, textAlign: "center" }}>読み込み中...</div>;
+  if (error) return <div style={{ padding: 32, textAlign: "center", color: "red" }}>{error}</div>;
+  if (!sku) return null;
+  const isAdmin = true; // TODO: 権限判定
 
-  if (!sku) {
-    return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-2xl mb-4">SKUが見つかりません</p>
-          <Link href="/sku" className="text-blue-400 hover:text-blue-300">
-            SKU一覧に戻る
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  // --- 要対応サマリー判定 ---
+  const reasons: string[] = [];
+  const requiredImages = 6;
+  if (!sku.imageCount || sku.imageCount < requiredImages) reasons.push(`画像が不足しています（${sku.imageCount || 0} / ${requiredImages}）`);
+  if (!sku.title || sku.title === "(未入力)" || sku.is_temp_title) reasons.push("商品名が未確定です");
+  if (!sku.jp_condition && !sku.condition) reasons.push("コンディション未設定です");
+  if (sku.cost == null || sku.cost === "" || sku.expected_price == null || sku.expected_price === "") reasons.push("価格情報が未入力です");
+  if (sku.profit == null || sku.profit === "" || sku.profitJudge === "判定不可" || sku.profitJudge === "-") reasons.push("利益判定ができません");
+  if (!sku.ai_title_status || sku.ai_title_status === "未生成") reasons.push("AIタイトルが未生成です");
+  if (!sku.ai_desc_status || sku.ai_desc_status === "未生成") reasons.push("AI説明文が未生成です");
+  if (!sku.listing_status || sku.listing_status === "未判定" || sku.listing_status === "-") reasons.push("出品可否が未判定です");
+  const isOk = reasons.length === 0;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
-      {/* ヘッダー */}
-      <div className="bg-slate-950 border-b border-slate-700">
-        <div className="max-w-6xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold">{sku.sku}</h1>
-              <p className="text-slate-400 text-sm mt-1">{sku.title || "（未設定）"}</p>
-            </div>
-            <div className="flex gap-3">
-              <Link
-                href="/"
-                className="px-4 py-2 bg-slate-700 rounded hover:bg-slate-600 font-semibold"
-              >
-                ⬅️ ホームに戻る
-              </Link>
-              <Link
-                href={`/sku/${id}/edit`}
-                className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 font-semibold"
-              >
-                ✏️ 編集
-              </Link>
-              <Link
-                href="/sku"
-                className="px-4 py-2 bg-slate-700 rounded hover:bg-slate-600 font-semibold"
-              >
-                一覧に戻る
-              </Link>
-            </div>
-          </div>
-
-          {/* 基本情報 */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-slate-800 p-4 rounded">
-              <p className="text-slate-400 text-sm mb-1">ステータス</p>
-              <div className="flex items-center gap-2">
-                <div
-                  className={`w-3 h-3 rounded-full ${
-                    STATUS_COLOR[sku.status ?? "none"]
-                  }`}
-                />
-                <span className="font-semibold">{STATUS_LABEL[sku.status ?? "none"]}</span>
-              </div>
-            </div>
-            <div className="bg-slate-800 p-4 rounded">
-              <p className="text-slate-400 text-sm mb-1">作成日</p>
-              <p className="font-semibold">
-                {new Date(sku.created_at).toLocaleDateString("ja-JP")}
-              </p>
-            </div>
-            <div className="bg-slate-800 p-4 rounded">
-              <p className="text-slate-400 text-sm mb-1">AI抽出</p>
-              <p className="font-semibold">
-                {sku.ai_extracted_at ? "✅ 完了" : "❌ 未実行"}
-              </p>
-            </div>
-            <div className="bg-slate-800 p-4 rounded">
-              <p className="text-slate-400 text-sm mb-1">ジャンル</p>
-              <p className="font-semibold">{sku.genre || "—"}</p>
-            </div>
+    <div className="min-h-screen bg-[#18181b] py-10">
+      <div className="max-w-2xl mx-auto p-6 bg-[#23232a] rounded-2xl shadow-lg border border-gray-800 text-white">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold text-white">SKU詳細</h1>
+          <Link href="/" className="px-3 py-1 rounded bg-gray-700 text-white text-sm hover:bg-gray-600 border border-gray-600">🏠 ホーム</Link>
+        </div>
+        <div className="mb-4 text-sm text-gray-300">SKU番号: <span className="font-mono text-lg text-white">{sku.sku || "(未入力)"}</span></div>
+        <div className="mb-2 font-semibold text-lg">商品名: <span className={sku.title ? '' : 'text-gray-500'}>{sku.title || sku.jp_title || <span className='text-gray-500'>(未入力)</span>}</span></div>
+        <div className="mb-2 text-xs text-gray-400">作成日: {sku.created_at ? new Date(sku.created_at).toLocaleString() : "-"} ／ 最終更新: {sku.updated_at ? new Date(sku.updated_at).toLocaleString() : "-"}</div>
+        <div className="mb-2">ステータス: <span className="px-2 py-1 rounded bg-gray-700 text-white">{sku.status || "-"}</span></div>
+        {/* 要対応サマリー */}
+        <div className={`my-4 p-4 rounded-xl border-2 ${isOk ? "bg-green-900/30 border-green-600" : "bg-yellow-900/30 border-yellow-600"}`}>
+          <div className="font-bold mb-1 text-white">要対応サマリー</div>
+          {isOk ? (
+            <div className="text-green-400 font-bold flex items-center gap-2">✅ 出品可能</div>
+          ) : (
+            <>
+              <div className="text-red-400 font-bold flex items-center gap-2">❌ 要対応（{reasons.length}項目）</div>
+              <ul className="mt-1 ml-2 text-sm text-red-200 list-disc">
+                {reasons.map((r, i) => <li key={i}>{r}</li>)}
+              </ul>
+            </>
+          )}
+        </div>
+        {/* 画像状況 */}
+        <div className="mb-4">
+          <div className="font-bold text-white">画像状況</div>
+          <div className={sku.imageCount < requiredImages ? "text-red-400" : "text-green-400"}>📸 画像枚数: {sku.imageCount || 0} / {requiredImages} {sku.imageCount < requiredImages ? "（未完了）" : "（OK）"}</div>
+          {/* サムネイル一覧 */}
+          <div className="flex gap-2 mt-2">
+            {(sku.images || []).map((img: string, i: number) => (
+              <img key={i} src={img} alt="img" className="w-16 h-16 object-cover rounded border border-gray-700" />
+            ))}
           </div>
         </div>
-      </div>
-
-      {/* メインコンテンツ */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* 左カラム：商品情報 */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* 基本商品情報 */}
-            <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
-              <h2 className="text-xl font-bold mb-4">📦 商品情報</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-slate-400 text-sm mb-1">ブランド</p>
-                  <p className="font-semibold text-lg">{sku.brand || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-slate-400 text-sm mb-1">型番</p>
-                  <p className="font-semibold text-lg">{sku.model || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-slate-400 text-sm mb-1">色</p>
-                  <p className="font-semibold text-lg">{sku.color || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-slate-400 text-sm mb-1">状態</p>
-                  <p className="font-semibold text-lg">{sku.condition || "—"}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* eBay情報 */}
-            <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
-              <h2 className="text-xl font-bold mb-4">🌐 eBay情報</h2>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-slate-400 text-sm mb-1">カテゴリ番号</p>
-                  <p className="font-semibold text-lg">{sku.ebay_category || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-slate-400 text-sm mb-2">タイトル</p>
-                  <p className="bg-slate-700 p-3 rounded text-white">
-                    {sku.title_optimized || "—"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-slate-400 text-sm mb-2">説明文</p>
-                  <p className="bg-slate-700 p-3 rounded text-white whitespace-pre-wrap">
-                    {sku.description || "—"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Item Specifics */}
-            {sku.item_specifics && Object.keys(sku.item_specifics).length > 0 && (
-              <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
-                <h2 className="text-xl font-bold mb-4">🏷️ Item Specifics</h2>
-                <div className="space-y-2">
-                  {Object.entries(sku.item_specifics).map(([key, value]) => (
-                    <div key={key} className="flex justify-between bg-slate-700 p-3 rounded">
-                      <span className="text-slate-300">{key}:</span>
-                      <span className="font-semibold">{value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+        {/* 価格・利益 */}
+        <div className="mb-4">
+          <div className="font-bold text-white">価格・利益</div>
+          <div>原価: {sku.cost == null || sku.cost === "" ? <span className="text-red-400">未入力</span> : <span className="text-white">{sku.cost}</span>}</div>
+          <div>売価: {sku.expected_price == null || sku.expected_price === "" ? <span className="text-red-400">未入力</span> : <span className="text-white">{sku.expected_price}</span>}</div>
+          <div>利益: {sku.profit == null || sku.profit === "" ? <span className="text-red-400">計算不可</span> : <span className="text-white">{sku.profit}</span>}</div>
+          <div className="flex items-center gap-2">
+            <span>利益率:</span>
+            {sku.profitRate == null || sku.profitRate === "" ? (
+              <span className="text-red-400">計算不可</span>
+            ) : (
+              (() => {
+                const result = judgeProfit(Number(sku.profitRate));
+                return (
+                  <span className={`badge badge-${result.color}`} style={{ minWidth: 70, display: 'inline-block' }}>
+                    {result.status === "ok" && "🟢"}
+                    {result.status === "warning" && "🟡"}
+                    {result.status === "ng" && "🔴"}
+                    {result.label}
+                    <span className="ml-1 text-xs text-gray-500">({Number(sku.profitRate).toFixed(1)}%)</span>
+                  </span>
+                );
+              })()
             )}
           </div>
-
-          {/* 右カラム：サマリー */}
-          <div className="space-y-6">
-            {/* クイックアクション */}
-            <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
-              <h3 className="text-lg font-bold mb-4">⚡ クイックアクション</h3>
-              <div className="space-y-3">
-                <Link
-                  href={`/sku/${id}/edit`}
-                  className="block w-full px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 font-semibold text-center"
-                >
-                  ✏️ 商品情報を編集
-                </Link>
-                <a
-                  href={`/upload?sku=${sku.sku}`}
-                  className="block w-full px-4 py-2 bg-purple-600 rounded hover:bg-purple-700 font-semibold text-center"
-                >
-                  📸 画像をアップロード
-                </a>
-                <a
-                  href={`/sku/customize?id=${id}`}
-                  className="block w-full px-4 py-2 bg-purple-600 rounded hover:bg-purple-700 font-semibold text-center"
-                >
-                  🤖 AI生成・プレビュー
-                </a>
-              </div>
-            </div>
-
-            {/* システムメモ */}
-            <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
-              <h3 className="text-lg font-bold mb-4">📝 このページについて</h3>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                このページは<strong>閲覧専用</strong>です。商品情報の編集はエディットページで行ってください。
-              </p>
-            </div>
-          </div>
+        </div>
+        {/* AI生成状況 */}
+        <div className="mb-4">
+          <div className="font-bold text-white">AI生成状況</div>
+          <div>タイトル: {sku.ai_title_status === "生成済" ? <span className="text-green-400">生成済</span> : <span className="text-red-400">未生成</span>}</div>
+          <div>説明文: {sku.ai_desc_status === "生成済" ? <span className="text-green-400">生成済</span> : <span className="text-red-400">未生成</span>}</div>
+          <div>最終生成日時: {sku.ai_updated_at ? <span className="text-white">{new Date(sku.ai_updated_at).toLocaleString()}</span> : <span className="text-gray-500">-</span>}</div>
+        </div>
+        {/* 出品ステータス */}
+        <div className="mb-4">
+          <div className="font-bold text-white">出品ステータス</div>
+          <div>eBay出品: {sku.listing_status || <span className="text-red-400">未出品</span>}</div>
+          <div>CSV/API連携: {sku.csv_status || <span className="text-red-400">未実行</span>}</div>
+        </div>
+        {/* ボタン群（次の作業だけ強調） */}
+        <div className="flex gap-3 mt-6">
+          <Link
+            href={`/sku/${sku.id}/edit`}
+            className="px-4 py-2 rounded bg-purple-600 text-white font-bold shadow hover:bg-purple-700"
+          >✏️ 編集する<br /><span className="text-xs">価格・商品情報・画像</span></Link>
+          {isAdmin && (
+            <button
+              className={
+                getNextAction(sku) === "listing"
+                  ? "px-4 py-2 rounded bg-orange-600 text-white font-bold shadow hover:bg-orange-700"
+                  : "px-4 py-2 rounded bg-gray-700 text-white opacity-60"
+              }
+              disabled={getNextAction(sku) !== "listing"}
+            >📄 出品データを確認（管理者）</button>
+          )}
         </div>
       </div>
     </div>

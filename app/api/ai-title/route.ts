@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { generateTextWithFallback } from "@/app/lib/aiProviders";
 
 export async function POST(req: Request) {
   try {
@@ -17,28 +18,22 @@ export async function POST(req: Request) {
 ・80文字以内で収める
     `;
 
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, // ← あなたのAPIキー
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 100,
-      }),
-    });
+    const result = await generateTextWithFallback({ prompt, preferred: "openai", maxTokens: 100, temperature: 0.3 });
 
-    const data = await res.json();
+    if (!result.ok) {
+      return NextResponse.json({ error: result.message, details: result.details }, { status: 502 });
+    }
 
-    const aiTitle = data.choices?.[0]?.message?.content?.trim();
+    const aiTitle = result.text?.trim() || "";
 
     return NextResponse.json({
-      title: aiTitle ?? "",
+      title: aiTitle,
+      provider_used: result.provider,
+      fallback: result.fallbackUsed,
+      model: result.model,
     });
   } catch (error) {
     console.error("AI error:", error);
-    return NextResponse.json({ error: "AI生成エラー" }, { status: 500 });
+    return NextResponse.json({ error: "AI生成エラー" }, { status: 502 });
   }
 }

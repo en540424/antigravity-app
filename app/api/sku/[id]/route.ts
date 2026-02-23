@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/app/lib/supabase";
+import { getServerSupabase } from "@/app/utils/supabase/server";
 
 // Next.js 16 用の Context 型
 type Context = {
@@ -7,7 +7,8 @@ type Context = {
 };
 
 // ---------------- GET（詳細取得）----------------
-export async function GET(_req: Request, context: Context) {
+export async function GET(req: Request, context: Context) {
+  const supabase = await getServerSupabase();
   const { id } = await context.params;
 
   const { data, error } = await supabase
@@ -27,6 +28,7 @@ export async function GET(_req: Request, context: Context) {
 export async function PUT(req: Request, context: Context) {
   const { id } = await context.params;
   const body = await req.json();
+  const supabase = await getServerSupabase();
 
   const { data, error } = await supabase
     .from("sku_list")
@@ -45,6 +47,7 @@ export async function PUT(req: Request, context: Context) {
 // ---------------- DELETE（削除）----------------
 export async function DELETE(_req: Request, context: Context) {
   const { id } = await context.params;
+  const supabase = await getServerSupabase();
 
   const { error } = await supabase
     .from("sku_list")

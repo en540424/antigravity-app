@@ -4,11 +4,13 @@
   "scripts": {
     "dev": "cross-env NEXT_PRIVATE_TURBOPACK=0 next dev",
     "build": "cross-env NEXT_PRIVATE_TURBOPACK=0 next build",
-    "start": "next start"
+    "start": "next start",
+    "commit:auto": "node scripts/auto-commit.mjs"
   },
   "devDependencies": {
     "@types/node": "24.10.2",
     "@types/react": "19.2.7",
+    "baseline-browser-mapping": "^2.10.0",
     "cross-env": "^10.1.0",
     "typescript": "5.9.3"
   },
@@ -17,10 +19,14 @@
     "@supabase/supabase-js": "^2.87.0",
     "@tailwindcss/postcss": "^4.1.17",
     "autoprefixer": "^10.4.22",
+    "jszip": "^3.10.1",
+    "nanoid": "^5.1.6",
     "next": "^16.0.8",
+    "openai": "^6.22.0",
     "postcss": "^8.5.6",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
+    "react-markdown": "^10.1.0",
     "tailwindcss": "^4.1.17",
     "uuid": "^13.0.0"
   }

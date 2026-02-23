@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/app/lib/supabase";
 
 /**
  * 画像からAIが抽出する情報の型
@@ -9,11 +8,11 @@ export interface ExtractedProductInfo {
   brand: string;           // SONY / Nikon / Casio / Uniqlo
   model: string;           // 型番：NW-A45 / ILCE-6000 / GA-2100
   color: string;           // 色
-  condition: string;       // 商品状態：新品・未使用・美品・良好・可 etc.
-  ebayCategory: string;    // eBayカテゴリ番号
-  titleOptimized: string;  // タイトル最適化
+  condition: string;       // 商品状態
+  categoryId?: number | string; // eBayカテゴリ番号（任意）
+  title_optimized: string;  // タイトル最適化
   description: string;     // 説明文
-  itemSpecifics: Record<string, string>;  // Item Specifics
+  item_specifics: Record<string, string>;  // Item Specifics
 }
 
 export async function POST(req: Request) {
@@ -52,10 +51,10 @@ export async function POST(req: Request) {
 3. model: 型番・モデル番号（見える場合。例: NW-A45、ILCE-6000、GA-2100。不明な場合は "Unknown"）
 4. color: 色（黒、白、シルバー、ゴールド、赤、青など）
 5. condition: 商品状態（新品未使用、新品・未開封、美品、良好、可、要修理など）
-6. ebayCategory: eBayカテゴリ番号（例: 171485 = Cameras & Photography, 26516 = Digital Cameras）
-7. titleOptimized: eBay出品用に最適化された日本語タイトル（80文字以内）
+6. categoryId: eBayカテゴリ番号（例: 171485 = Cameras & Photography, 26516 = Digital Cameras）
+7. title_optimized: eBay出品用に最適化された日本語タイトル（80文字以内）
 8. description: 商品説明（日本語、200文字程度）
-9. itemSpecifics: Item Specifics（JSON オブジェクト形式。例: {"Brand": "SONY", "Model": "ILCE-6000"}）
+9. item_specifics: Item Specifics（JSON オブジェクト形式。例: {"Brand": "SONY", "Model": "ILCE-6000"}）
 
 回答は以下の JSON 形式で返してください（他の説明は不要）:
 {
@@ -64,10 +63,10 @@ export async function POST(req: Request) {
   "model": "...",
   "color": "...",
   "condition": "...",
-  "ebayCategory": "...",
-  "titleOptimized": "...",
+  "categoryId": "...",
+  "title_optimized": "...",
   "description": "...",
-  "itemSpecifics": {...}
+  "item_specifics": {...}
 }
     `;
 

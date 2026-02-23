@@ -82,3 +82,24 @@ npm run dev      # Start development server (http://localhost:3000)
 npm run build    # Production build
 npm run start    # Start production server
 npm run lint     # Run ESLint
+---
+## Docs Priority (Must Read First)
+
+You MUST read and follow, in this order:
+1) docs/ai-principles.md
+2) docs/design-rules.md
+3) docs/decision-log.md
+---
+## Docs Priority (Must Read First)
+
+You MUST read and follow, in this order:
+1) docs/ai-principles.md
+2) docs/design-rules.md
+3) docs/decision-log.md
+---
+## Docs Priority (Must Read First)
+
+You MUST read and follow, in this order:
+1) docs/ai-principles.md
+2) docs/design-rules.md
+3) docs/decision-log.md

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 // 切替可能なUIコンポーネント
@@ -58,13 +59,17 @@ type EditingItem = {
   model?: string | null;
   color?: string | null;
   condition?: string | null;
-  ebayCategory?: string | null;
-  titleOptimized?: string | null;
+  // eBayカテゴリ（新→旧→旧）
+  ebay_category_id?: number | null;
+  ebay_category?: string | null;
+  category_id?: number | null;
+  title_optimized?: string | null;
   description?: string | null;
-  itemSpecifics?: Record<string, string> | null;
+  item_specifics?: Record<string, string> | null;
 };
 
 export default function CustomizePage() {
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<string>("card");
   const [loading, setLoading] = useState(true);
   const [list, setList] = useState<SkuItem[]>([]);
@@ -156,7 +161,7 @@ export default function CustomizePage() {
   const renderComponent = () => {
     switch (viewMode) {
       case "card":
-        return <CardUI onEdit={handleEditClick} />;
+        return <CardUI items={filteredList} />;
       case "simple":
         return <SimpleUI onEdit={handleEditClick} />;
       case "compact":
@@ -174,7 +179,7 @@ export default function CustomizePage() {
       case "techdark":
         return <TechDarkUI onEdit={handleEditClick} />;
       default:
-        return <CardUI onEdit={handleEditClick} />;
+        return <CardUI items={filteredList} />;
     }
   };
 
@@ -248,12 +253,11 @@ export default function CustomizePage() {
           model: extractedInfo.model,
           color: extractedInfo.color,
           condition: extractedInfo.condition,
-          ebayCategory: extractedInfo.ebayCategory,
-          titleOptimized: extractedInfo.titleOptimized,
+          title_optimized: extractedInfo.title_optimized,
           description: extractedInfo.description,
-          itemSpecifics: extractedInfo.itemSpecifics,
+          item_specifics: extractedInfo.item_specifics,
           // タイトルも自動抽出された最適化版で更新
-          title: extractedInfo.titleOptimized,
+          title: extractedInfo.title_optimized,
         };
       });
     } catch (e) {
@@ -287,10 +291,10 @@ export default function CustomizePage() {
         model: editingItem.model,
         color: editingItem.color,
         condition: editingItem.condition,
-        ebayCategory: editingItem.ebayCategory,
-        titleOptimized: editingItem.titleOptimized,
+        ebay_category_id: editingItem.ebay_category_id ?? null,
+        title_optimized: editingItem.title_optimized,
         description: editingItem.description,
-        itemSpecifics: editingItem.itemSpecifics,
+        item_specifics: editingItem.item_specifics,
       }),
     });
 
@@ -394,12 +398,24 @@ export default function CustomizePage() {
     <div className="min-h-screen bg-slate-900 text-white flex flex-col">
       <div className="flex-shrink-0 bg-slate-900 py-3 px-4 border-b border-slate-700">
         <div className="max-w-6xl mx-auto">
-          <div className="mb-2 flex justify-between items-center">
+          <div className="mb-2 flex justify-between items-center gap-2">
+            <button
+              onClick={() => router.back()}
+              className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded hover:bg-slate-700 text-sm font-semibold"
+            >
+              ⬅️ 前に戻る
+            </button>
+            <Link
+              href="/sku/sku-manager"
+              className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded hover:bg-slate-700 text-sm font-semibold"
+            >
+              📋 SKU管理画面
+            </Link>
             <Link
               href="/"
               className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded hover:bg-slate-700 text-sm font-semibold"
             >
-              ⬅️ ホームに戻る
+              🏠 ホームに戻る
             </Link>
           </div>
           {/* ヘッダー */}
@@ -713,10 +729,13 @@ export default function CustomizePage() {
                   <div>
                     <label className="block text-xs text-gray-400 mb-1">eBayカテゴリ番号</label>
                     <input
-                      type="text"
-                      value={editingItem.ebayCategory || ""}
+                      type="number"
+                      value={editingItem.ebay_category_id ?? ""}
                       onChange={(e) =>
-                        setEditingItem({ ...editingItem, ebayCategory: e.target.value })
+                        setEditingItem({
+                          ...editingItem,
+                          ebay_category_id: e.target.value ? Number(e.target.value) : null,
+                        })
                       }
                       className="w-full p-2 rounded bg-slate-700 text-white text-xs"
                     />
@@ -727,9 +746,9 @@ export default function CustomizePage() {
                 <div className="mb-3">
                   <label className="block text-xs text-gray-400 mb-1">eBay タイトル最適化</label>
                   <textarea
-                    value={editingItem.titleOptimized || ""}
+                    value={editingItem.title_optimized || ""}
                     onChange={(e) =>
-                      setEditingItem({ ...editingItem, titleOptimized: e.target.value })
+                      setEditingItem({ ...editingItem, title_optimized: e.target.value })
                     }
                     className="w-full p-2 rounded bg-slate-700 text-white text-xs resize-none"
                     rows={2}
@@ -750,11 +769,11 @@ export default function CustomizePage() {
                 </div>
 
                 {/* Item Specifics */}
-                {editingItem.itemSpecifics && Object.keys(editingItem.itemSpecifics).length > 0 && (
+                {editingItem.item_specifics && Object.keys(editingItem.item_specifics).length > 0 && (
                   <div>
                     <label className="block text-xs text-gray-400 mb-2 font-semibold">Item Specifics</label>
                     <div className="space-y-2 bg-slate-700 p-2 rounded">
-                      {Object.entries(editingItem.itemSpecifics).map(([key, value]) => (
+                      {Object.entries(editingItem.item_specifics).map(([key, value]) => (
                         <div key={key} className="flex gap-2">
                           <span className="text-xs text-gray-300 w-24 flex-shrink-0">{key}:</span>
                           <input
@@ -763,8 +782,8 @@ export default function CustomizePage() {
                             onChange={(e) =>
                               setEditingItem({
                                 ...editingItem,
-                                itemSpecifics: {
-                                  ...editingItem.itemSpecifics,
+                                item_specifics: {
+                                  ...editingItem.item_specifics,
                                   [key]: e.target.value,
                                 },
                               })
