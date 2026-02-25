@@ -103,3 +103,6 @@ You MUST read and follow, in this order:
 1) docs/ai-principles.md
 2) docs/design-rules.md
 3) docs/decision-log.md
+## Skills運用
+- 変更作業は `.claude/skills/safe-refactor.md` に従う
+- 迷ったら safe-refactor を適用する
