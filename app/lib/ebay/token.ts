@@ -5,6 +5,12 @@ export async function getEbayAccessToken(): Promise<string> {
   const clientSecret = process.env.EBAY_CLIENT_SECRET || "";
   const refreshToken = process.env.EBAY_REFRESH_TOKEN || "";
 
+  console.log("EBAY_ENV_CHECK", {
+    clientIdHead: clientId.slice(0, 12),
+    refreshLen: refreshToken.length,
+    refreshTail: refreshToken.slice(-6),
+  });
+
   if (!clientId || !clientSecret || !refreshToken) {
     throw new Error("Missing EBAY env vars");
   }
@@ -14,6 +20,9 @@ export async function getEbayAccessToken(): Promise<string> {
   const body = new URLSearchParams();
   body.set("grant_type", "refresh_token");
   body.set("refresh_token", refreshToken);
+  if (process.env.EBAY_SCOPES) {
+    body.set("scope", process.env.EBAY_SCOPES);
+  }
 
   const res = await fetch("https://api.ebay.com/identity/v1/oauth2/token", {
     method: "POST",
@@ -24,7 +33,9 @@ export async function getEbayAccessToken(): Promise<string> {
     body,
   });
 
-  const json = await res.json();
+  const text = await res.text();
+  console.log("EBAY TOKEN RESPONSE:", text);
+  const json = JSON.parse(text);
   if (!res.ok) {
     throw new Error(`eBay token refresh failed: ${JSON.stringify(json)}`);
   }

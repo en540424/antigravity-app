@@ -17,12 +17,26 @@ function getNextAction(sku: any) {
   return "ok";
 }
 
+// eBay出品ステータスのバッジ設定
+const LISTING_STATUS_CONFIG: Record<
+  string,
+  { label: string; className: string }
+> = {
+  draft:  { label: "下書き", className: "bg-gray-700 text-gray-300" },
+  ready:  { label: "出品可", className: "bg-blue-800 text-blue-200" },
+  active: { label: "出品中", className: "bg-green-800 text-green-200" },
+  ended:  { label: "終了", className: "bg-orange-800 text-orange-200" },
+  sold:   { label: "売却済", className: "bg-purple-800 text-purple-200" },
+};
+
 export default function SkuDetailPage() {
   const params = useParams();
   const id = params?.id as string;
   const [sku, setSku] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -38,6 +52,37 @@ export default function SkuDetailPage() {
       .catch(() => setError("データが見つかりませんでした"))
       .finally(() => setLoading(false));
   }, [id]);
+
+  async function handlePublish() {
+    if (!sku?.id) return;
+    setPublishing(true);
+    setPublishError("");
+    try {
+      const res = await fetch("/api/ebay/listing/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skuId: sku.id }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        const detail = json?.error?.details
+          ? (json.error.details as string[]).join(", ")
+          : json?.error?.message || "出品に失敗しました";
+        setPublishError(detail);
+        return;
+      }
+      // 成功 → sku を再フェッチしてステータス更新
+      const refreshed = await fetch(`/api/sku-detail?id=${encodeURIComponent(id)}`);
+      if (refreshed.ok) {
+        const data = await refreshed.json();
+        setSku(data);
+      }
+    } catch {
+      setPublishError("通信エラーが発生しました");
+    } finally {
+      setPublishing(false);
+    }
+  }
 
   if (loading) return <div style={{ padding: 32, textAlign: "center" }}>読み込み中...</div>;
   if (error) return <div style={{ padding: 32, textAlign: "center", color: "red" }}>{error}</div>;
@@ -56,6 +101,15 @@ export default function SkuDetailPage() {
   if (!sku.ai_desc_status || sku.ai_desc_status === "未生成") reasons.push("AI説明文が未生成です");
   if (!sku.listing_status || sku.listing_status === "未判定" || sku.listing_status === "-") reasons.push("出品可否が未判定です");
   const isOk = reasons.length === 0;
+
+  // eBay出品ステータス
+  const ebayStatus: string = sku.ebay_listing_status || "draft";
+  const statusConfig = LISTING_STATUS_CONFIG[ebayStatus] ?? LISTING_STATUS_CONFIG.draft;
+  const canPublish =
+    isAdmin &&
+    ebayStatus !== "active" &&
+    ebayStatus !== "sold" &&
+    ebayStatus !== "ended";
 
   return (
     <div className="min-h-screen bg-[#18181b] py-10">
@@ -86,7 +140,6 @@ export default function SkuDetailPage() {
         <div className="mb-4">
           <div className="font-bold text-white">画像状況</div>
           <div className={sku.imageCount < requiredImages ? "text-red-400" : "text-green-400"}>📸 画像枚数: {sku.imageCount || 0} / {requiredImages} {sku.imageCount < requiredImages ? "（未完了）" : "（OK）"}</div>
-          {/* サムネイル一覧 */}
           <div className="flex gap-2 mt-2">
             {(sku.images || []).map((img: string, i: number) => (
               <img key={i} src={img} alt="img" className="w-16 h-16 object-cover rounded border border-gray-700" />
@@ -126,13 +179,65 @@ export default function SkuDetailPage() {
           <div>説明文: {sku.ai_desc_status === "生成済" ? <span className="text-green-400">生成済</span> : <span className="text-red-400">未生成</span>}</div>
           <div>最終生成日時: {sku.ai_updated_at ? <span className="text-white">{new Date(sku.ai_updated_at).toLocaleString()}</span> : <span className="text-gray-500">-</span>}</div>
         </div>
-        {/* 出品ステータス */}
+        {/* eBay出品ステータス */}
+        <div className="mb-4 p-4 rounded-xl border border-gray-700 bg-[#1a1a22]">
+          <div className="font-bold text-white mb-2">eBay出品</div>
+          <div className="flex items-center gap-3 mb-2">
+            <span className={`px-3 py-1 rounded-full text-sm font-bold ${statusConfig.className}`}>
+              {statusConfig.label}
+            </span>
+            {sku.ebay_synced_at && (
+              <span className="text-xs text-gray-400">
+                同期: {new Date(sku.ebay_synced_at).toLocaleString()}
+              </span>
+            )}
+          </div>
+          {sku.ebay_listing_url && (
+            <a
+              href={sku.ebay_listing_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 underline mb-2"
+            >
+              🔗 eBay出品ページを開く
+            </a>
+          )}
+          {sku.ebay_item_id && (
+            <div className="text-xs text-gray-500 mb-2">
+              Item ID: {sku.ebay_item_id}
+            </div>
+          )}
+          {publishError && (
+            <div className="text-sm text-red-400 bg-red-900/30 rounded p-2 mb-2">
+              ❌ {publishError}
+            </div>
+          )}
+          {canPublish && (
+            <button
+              onClick={handlePublish}
+              disabled={publishing}
+              className={`px-4 py-2 rounded font-bold text-white shadow transition-colors ${
+                publishing
+                  ? "bg-gray-600 opacity-60 cursor-not-allowed"
+                  : "bg-green-600 hover:bg-green-500"
+              }`}
+            >
+              {publishing ? "⏳ 出品中..." : "🚀 eBayに出品する"}
+            </button>
+          )}
+          {ebayStatus === "active" && (
+            <div className="text-sm text-green-400 mt-1">✅ 出品済み</div>
+          )}
+          {ebayStatus === "sold" && (
+            <div className="text-sm text-purple-400 mt-1">✅ 売却済み</div>
+          )}
+        </div>
+        {/* CSV/API連携（従来） */}
         <div className="mb-4">
-          <div className="font-bold text-white">出品ステータス</div>
-          <div>eBay出品: {sku.listing_status || <span className="text-red-400">未出品</span>}</div>
+          <div className="font-bold text-white">CSV出品連携</div>
           <div>CSV/API連携: {sku.csv_status || <span className="text-red-400">未実行</span>}</div>
         </div>
-        {/* ボタン群（次の作業だけ強調） */}
+        {/* ボタン群 */}
         <div className="flex gap-3 mt-6">
           <Link
             href={`/sku/${sku.id}/edit`}

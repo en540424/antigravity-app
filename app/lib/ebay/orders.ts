@@ -6,6 +6,11 @@ type EbayLineItem = {
   sku?: string;
   quantity: number;
   title?: string;
+  legacyItemId?: string;
+  lineItemCost?: {
+    value: string;
+    currency: string;
+  };
 };
 
 export type EbayOrder = {

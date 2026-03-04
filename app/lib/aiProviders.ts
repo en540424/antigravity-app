@@ -278,6 +278,15 @@ type ProviderFailure = {
   message: string;
 };
 
+export type DescriptionInput = {
+  sku?: string | null;
+  title?: string | null;
+  brand?: string | null;
+  model?: string | null;
+  color?: string | null;
+  notes?: string | null;
+};
+
 const OPENAI_MODEL = "gpt-4o-mini";
 const GEMINI_MODEL = "gemini-1.5-flash";
 

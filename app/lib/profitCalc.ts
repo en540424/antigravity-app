@@ -1,3 +1,20 @@
+// 絶対額ベースの利益計算（sales_orders 保存用）
+export function calcNetProfit({
+  salePrice,
+  costPrice,
+  ebayFee,
+  paymentFee,
+  shippingCost,
+}: {
+  salePrice: number;
+  costPrice: number;
+  ebayFee: number;
+  paymentFee: number;
+  shippingCost: number;
+}): number {
+  return salePrice - costPrice - ebayFee - paymentFee - shippingCost;
+}
+
 // 利益・利益率計算（コアロジック）
 export function calcProfitAndRate({
   expected_price,

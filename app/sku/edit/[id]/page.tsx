@@ -64,6 +64,9 @@ type EditingItem = {
   procurement_cost_jpy?: number | null;
   receipt_exists?: boolean;
   procurement_notes?: string | null;
+  ebay_fulfillment_policy_id?: string | null;
+  ebay_payment_policy_id?: string | null;
+  ebay_return_policy_id?: string | null;
 };
 
 type SalesChannel = "ebay" | "domestic" | "other";
@@ -141,6 +144,13 @@ export default function SkuEditPage() {
   // タブ状態管理
   const [activeTab, setActiveTab] = useState<"images" | "price" | "ebay" | "info">("images");
 
+  // eBayポリシー一覧（ebayタブ表示時にフェッチ）
+  const [ebayPolicies, setEbayPolicies] = useState<{
+    FULFILLMENT: { policy_id: string; name: string }[];
+    PAYMENT: { policy_id: string; name: string }[];
+    RETURN: { policy_id: string; name: string }[];
+  }>({ FULFILLMENT: [], PAYMENT: [], RETURN: [] });
+
   // データ読み込み
   useEffect(() => {
     const loadData = async () => {
@@ -211,6 +221,9 @@ export default function SkuEditPage() {
           procurement_cost_jpy: data.procurement_cost_jpy ?? null,
           receipt_exists: data.receipt_exists ?? false,
           procurement_notes: data.procurement_notes ?? null,
+          ebay_fulfillment_policy_id: data.ebay_fulfillment_policy_id ?? null,
+          ebay_payment_policy_id: data.ebay_payment_policy_id ?? null,
+          ebay_return_policy_id: data.ebay_return_policy_id ?? null,
         };
         // ローカル下書きがあれば復元（編集中の消失防止）
         const draftKey = `sku-edit-draft-${id}`;
@@ -344,6 +357,29 @@ export default function SkuEditPage() {
     } catch {}
   }, [profitCalc, id, loading]);
 
+  // eBayポリシー一覧の取得（eBayタブ表示時）
+  useEffect(() => {
+    if (activeTab !== "ebay") return;
+    if (ebayPolicies.FULFILLMENT.length > 0) return;
+    const fetchPolicies = async () => {
+      try {
+        const [f, p, r] = await Promise.all([
+          fetch("/api/ebay/policies?type=FULFILLMENT").then((res) => res.json()),
+          fetch("/api/ebay/policies?type=PAYMENT").then((res) => res.json()),
+          fetch("/api/ebay/policies?type=RETURN").then((res) => res.json()),
+        ]);
+        setEbayPolicies({
+          FULFILLMENT: f.ok ? f.data : [],
+          PAYMENT: p.ok ? p.data : [],
+          RETURN: r.ok ? r.data : [],
+        });
+      } catch {
+        // ignore
+      }
+    };
+    fetchPolicies();
+  }, [activeTab]);
+
   // 画面離脱防止（未保存警告）
   useEffect(() => {
     const beforeUnload = (e: BeforeUnloadEvent) => {
@@ -459,6 +495,9 @@ export default function SkuEditPage() {
         exchange_rate: exchangeRate,
         sku_condition: editingItem.sku_condition ?? "unset",
         deleted_at: editingItem.deleted_at ?? null,
+        ebay_fulfillment_policy_id: editingItem.ebay_fulfillment_policy_id ?? null,
+        ebay_payment_policy_id: editingItem.ebay_payment_policy_id ?? null,
+        ebay_return_policy_id: editingItem.ebay_return_policy_id ?? null,
       };
       console.log("[handleSave] fullBody price fields:", {
         sale_price_usd: fullBody.sale_price_usd,
@@ -573,7 +612,10 @@ export default function SkuEditPage() {
       payload.profit_jpy = typeof editingItem.profit_jpy === "number" ? editingItem.profit_jpy : null;
       payload.profit_rate = typeof editingItem.profit_rate === "number" ? editingItem.profit_rate : null;
       payload.domestic_shipping = typeof editingItem.domestic_shipping === "number" ? editingItem.domestic_shipping : null;
-      
+      payload.ebay_fulfillment_policy_id = editingItem.ebay_fulfillment_policy_id ?? null;
+      payload.ebay_payment_policy_id = editingItem.ebay_payment_policy_id ?? null;
+      payload.ebay_return_policy_id = editingItem.ebay_return_policy_id ?? null;
+
       // 🔥 DEBUG: Payload の内容を確認
       console.log("🔥SAVE_DEBUG", {
         title: editingItem?.title,
@@ -649,7 +691,7 @@ export default function SkuEditPage() {
       // タイトル取得（複数フィールドから優先度付きで取得）
       const titleForAi =
         (editingItem?.title ?? "").trim() ||
-        (editingItem?.titleOptimized ?? "").trim() ||
+        (editingItem?.title_optimized ?? "").trim() ||
         (editingItem?.title_optimized ?? "").trim() ||
         (typeof document !== "undefined" ? (document.querySelector<HTMLInputElement>('[name="title"]')?.value ?? "").trim() : "") ||
         "";
@@ -1090,55 +1132,6 @@ export default function SkuEditPage() {
     }
   };
 
-  // AI で説明文を自動生成（テンプレ + プレースホルダ埋め込み）
-  const handleGenerateDescription = async () => {
-    if (!editingItem) return;
-    
-    // タイトルは必須
-    if (!editingItem.title || editingItem.title.trim().length === 0) {
-      alert("タイトルを入力してください");
-      return;
-    }
-    
-    setAiGenerating(true);
-    try {
-      const res = await fetch("/api/generate-description", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          genre: editingItem.genre && editingItem.genre.trim().length > 0 ? editingItem.genre : "basic",
-          title: editingItem.title,
-          brand: editingItem.brand || "",
-          model: editingItem.model || "",
-          color: editingItem.color || "",
-          size: editingItem.item_specifics?.["Size"] || "",
-          condition: editingItem.condition || "",
-          included_items: editingItem.item_specifics?.["Included Items"] || "",
-          notes: editingItem.notes || "",
-          features: editingItem.item_specifics?.["Features"] || "",
-          sku: editingItem.sku,
-        }),
-      });
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "説明文生成失敗");
-      }
-      const data = await res.json();
-      setEditingItem({ ...editingItem, description: data.description });
-      alert("説明文を生成しました！");
-    } catch (err: any) {
-      console.error(err);
-      const errorMsg = err.message || "";
-      if (errorMsg.includes("quota") || errorMsg.includes("429")) {
-        alert("OpenAI API の quota が超過しています。\n\n👉 https://platform.openai.com/account/billing/overview\n\nで quota を確認し、billing を更新してください。\n\n代替案: テンプレを手動で選択して、説明文を直接編集することもできます。");
-      } else {
-        alert("説明文の生成に失敗しました: " + errorMsg);
-      }
-    } finally {
-      setAiGenerating(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-center">
@@ -1445,7 +1438,7 @@ export default function SkuEditPage() {
 
         {/* ===== タブ: 画像 ===== */}
         {activeTab === "images" && (
-          <ImageClassifier sku={editingItem.sku} />
+          <ImageClassifier />
         )}
 
         {/* ===== タブ: 価格・利益・eBay・商品情報の本実装は以下のフォーム群に統合済み ===== */}
@@ -2194,6 +2187,56 @@ export default function SkuEditPage() {
               })}
             />
           </div>
+
+          {/* eBay ポリシー設定 */}
+          <div className="mt-4 p-3 bg-blue-900/20 rounded border border-blue-700/30">
+            <div className="text-sm font-medium mb-3 text-blue-200">
+              🔧 eBayポリシー個別設定
+              <span className="text-xs font-normal text-slate-400 ml-2">（未選択は配送戦略のデフォルトを使用）</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-medium mb-1 text-slate-300">Fulfillment Policy</label>
+                <select
+                  value={editingItem.ebay_fulfillment_policy_id ?? ""}
+                  onChange={(e) => setEditingItem({ ...editingItem, ebay_fulfillment_policy_id: e.target.value || null })}
+                  className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded text-white text-sm"
+                >
+                  <option value="">— 戦略デフォルト —</option>
+                  {ebayPolicies.FULFILLMENT.map((p) => (
+                    <option key={p.policy_id} value={p.policy_id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1 text-slate-300">Payment Policy</label>
+                <select
+                  value={editingItem.ebay_payment_policy_id ?? ""}
+                  onChange={(e) => setEditingItem({ ...editingItem, ebay_payment_policy_id: e.target.value || null })}
+                  className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded text-white text-sm"
+                >
+                  <option value="">— 戦略デフォルト —</option>
+                  {ebayPolicies.PAYMENT.map((p) => (
+                    <option key={p.policy_id} value={p.policy_id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1 text-slate-300">Return Policy</label>
+                <select
+                  value={editingItem.ebay_return_policy_id ?? ""}
+                  onChange={(e) => setEditingItem({ ...editingItem, ebay_return_policy_id: e.target.value || null })}
+                  className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded text-white text-sm"
+                >
+                  <option value="">— 戦略デフォルト —</option>
+                  {ebayPolicies.RETURN.map((p) => (
+                    <option key={p.policy_id} value={p.policy_id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
           {Object.entries(item_specificsDraft).length === 0 && (
             <div className="text-sm text-slate-300">未取得です。AI抽出ボタンを押してください。</div>
           )}

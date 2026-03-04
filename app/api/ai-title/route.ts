@@ -21,7 +21,8 @@ export async function POST(req: Request) {
     const result = await generateTextWithFallback({ prompt, preferred: "openai", maxTokens: 100, temperature: 0.3 });
 
     if (!result.ok) {
-      return NextResponse.json({ error: result.message, details: result.details }, { status: 502 });
+      const errResult = result as { message: string; details?: unknown };
+      return NextResponse.json({ error: errResult.message, details: errResult.details }, { status: 502 });
     }
 
     const aiTitle = result.text?.trim() || "";

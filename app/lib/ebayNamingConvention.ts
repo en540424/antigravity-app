@@ -75,6 +75,18 @@ export const CONDITION_MAP = {
 export type ConditionKey = keyof typeof CONDITION_MAP;
 
 /**
+ * Sell Inventory API 用 Condition Enum マッピング
+ * Trading API の ConditionID → Sell Inventory API の conditionEnum
+ */
+export const CONDITION_ENUM_MAP: Record<number, string> = {
+  1000: "NEW",
+  1500: "NEW_OTHER",
+  3000: "USED_EXCELLENT",
+  4000: "USED_VERY_GOOD",
+  5000: "USED_GOOD",
+} as const;
+
+/**
  * Condition IDをキーから取得
  */
 export function getConditionId(key: ConditionKey): number {
