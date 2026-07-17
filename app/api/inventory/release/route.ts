@@ -51,20 +51,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const { data: skuRow, error: skuError } = await supabase
-      .from("sku_list")
-      .select("id")
-      .eq("sku", sku)
-      .is("deleted_at", null)
-      .single();
-
-    if (skuError || !skuRow) {
-      const notFound = skuError?.code === "PGRST116" || !skuRow;
-      return errorResponse(notFound ? "sku_not_found" : "sku_lookup_failed", notFound ? 404 : 500, {
-        detail: skuError?.message,
-      });
-    }
-
     const { data, error } = await supabase.rpc("add_inventory_tx", {
       p_sku: sku,
       p_tx_type: "RELEASE",

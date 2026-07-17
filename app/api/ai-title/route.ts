@@ -21,7 +21,9 @@ export async function POST(req: Request) {
     const result = await generateTextWithFallback({ prompt, preferred: "openai", maxTokens: 100, temperature: 0.3 });
 
     if (!result.ok) {
-      return NextResponse.json({ error: result.message, details: result.details }, { status: 502 });
+      const errMsg = "message" in result ? result.message : "AI generation failed";
+      const details = "details" in result ? result.details : undefined;
+      return NextResponse.json({ error: errMsg, details }, { status: 502 });
     }
 
     const aiTitle = result.text?.trim() || "";

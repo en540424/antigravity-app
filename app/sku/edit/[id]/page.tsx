@@ -649,7 +649,6 @@ export default function SkuEditPage() {
       // タイトル取得（複数フィールドから優先度付きで取得）
       const titleForAi =
         (editingItem?.title ?? "").trim() ||
-        (editingItem?.titleOptimized ?? "").trim() ||
         (editingItem?.title_optimized ?? "").trim() ||
         (typeof document !== "undefined" ? (document.querySelector<HTMLInputElement>('[name="title"]')?.value ?? "").trim() : "") ||
         "";
@@ -1091,53 +1090,7 @@ export default function SkuEditPage() {
   };
 
   // AI で説明文を自動生成（テンプレ + プレースホルダ埋め込み）
-  const handleGenerateDescription = async () => {
-    if (!editingItem) return;
-    
-    // タイトルは必須
-    if (!editingItem.title || editingItem.title.trim().length === 0) {
-      alert("タイトルを入力してください");
-      return;
-    }
-    
-    setAiGenerating(true);
-    try {
-      const res = await fetch("/api/generate-description", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          genre: editingItem.genre && editingItem.genre.trim().length > 0 ? editingItem.genre : "basic",
-          title: editingItem.title,
-          brand: editingItem.brand || "",
-          model: editingItem.model || "",
-          color: editingItem.color || "",
-          size: editingItem.item_specifics?.["Size"] || "",
-          condition: editingItem.condition || "",
-          included_items: editingItem.item_specifics?.["Included Items"] || "",
-          notes: editingItem.notes || "",
-          features: editingItem.item_specifics?.["Features"] || "",
-          sku: editingItem.sku,
-        }),
-      });
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "説明文生成失敗");
-      }
-      const data = await res.json();
-      setEditingItem({ ...editingItem, description: data.description });
-      alert("説明文を生成しました！");
-    } catch (err: any) {
-      console.error(err);
-      const errorMsg = err.message || "";
-      if (errorMsg.includes("quota") || errorMsg.includes("429")) {
-        alert("OpenAI API の quota が超過しています。\n\n👉 https://platform.openai.com/account/billing/overview\n\nで quota を確認し、billing を更新してください。\n\n代替案: テンプレを手動で選択して、説明文を直接編集することもできます。");
-      } else {
-        alert("説明文の生成に失敗しました: " + errorMsg);
-      }
-    } finally {
-      setAiGenerating(false);
-    }
-  };
+
 
   if (loading) {
     return (
@@ -1445,7 +1398,7 @@ export default function SkuEditPage() {
 
         {/* ===== タブ: 画像 ===== */}
         {activeTab === "images" && (
-          <ImageClassifier sku={editingItem.sku} />
+          <ImageClassifier />
         )}
 
         {/* ===== タブ: 価格・利益・eBay・商品情報の本実装は以下のフォーム群に統合済み ===== */}

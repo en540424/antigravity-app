@@ -48,6 +48,18 @@ export async function POST(req: NextRequest) {
             continue;
           }
 
+        const idempotencyKey = `ebay:lineItemId:${lineItemId}:OUT`;
+
+        const { data, error } = await supabase.rpc("add_inventory_tx", {
+          p_sku: sku,
+          p_tx_type: "OUT",
+          p_reason: "SALE",
+          p_quantity: qty,
+          p_idempotency_key: idempotencyKey,
+          p_note: `eBay orderId=${o.orderId} lineItemId=${lineItemId}`,
+          p_order_id: o.orderId,
+        });
+
         if (error) {
           const msg = (error.message || "").toLowerCase();
           if (msg.includes("idempotency") || msg.includes("duplicate")) {

@@ -267,6 +267,8 @@ export type ProductInfo = {
   notes?: string | null;
 };
 
+export type DescriptionInput = ProductInfo;
+
 export type Provider = "openai" | "gemini";
 
 type ProviderFailure = {
